@@ -8,3 +8,9 @@ A simple packet sniffer coded in C
 ## Usage
 
 `sudo ./main.o | tee log`
+
+# TODO
+ - Include Ethernet headers
+ - Include UDP protocol
+ - Include IGMP protocol
+ - Include ICMP protocol
