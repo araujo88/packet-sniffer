@@ -22,9 +22,9 @@ int total = 0;
 
 void check_socket(int socket);
 void print_ip_header(unsigned char *buffer, struct sockaddr_in *source, struct sockaddr_in *destination);
-void process_packet(unsigned char *buffer, size_t size, struct sockaddr_in *source, struct sockaddr_in *destination);
-void print_tcp_packet(unsigned char *buffer, size_t size, struct sockaddr_in *source, struct sockaddr_in *destination);
-void print_data(unsigned char *data , unsigned short size);
+void process_packet(unsigned char *buffer, ssize_t size, struct sockaddr_in *source, struct sockaddr_in *destination);
+void print_tcp_packet(unsigned char *buffer, ssize_t size, struct sockaddr_in *source, struct sockaddr_in *destination);
+void print_data(unsigned char *data , ssize_t size);
 
 int main(int argc, char *argv[])
 {
@@ -83,7 +83,7 @@ void check_socket(int socket)
     }
 }
 
-void process_packet(unsigned char *buffer, size_t size, struct sockaddr_in *source, struct sockaddr_in *destination)
+void process_packet(unsigned char *buffer, ssize_t size, struct sockaddr_in *source, struct sockaddr_in *destination)
 {
   struct iphdr *ip_header = (struct iphdr *) buffer;
   total++;
@@ -114,7 +114,7 @@ void process_packet(unsigned char *buffer, size_t size, struct sockaddr_in *sour
   printf("TCP : %d   UDP : %d   ICMP : %d   IGMP : %d   Others : %d   Total : %d\r",tcp,udp,icmp,igmp,others,total);
 }
 
-void print_tcp_packet(unsigned char *buffer, size_t size, struct sockaddr_in *source, struct sockaddr_in *destination)
+void print_tcp_packet(unsigned char *buffer, ssize_t size, struct sockaddr_in *source, struct sockaddr_in *destination)
 {
   unsigned short ip_header_length;
 
@@ -184,7 +184,7 @@ void print_ip_header(unsigned char *buffer, struct sockaddr_in *source, struct s
 	printf("   |-Destination IP    : %s\n",inet_ntoa(destination->sin_addr));
 }
 
-void print_data(unsigned char *data , unsigned short size)
+void print_data(unsigned char *data , ssize_t size)
 {
   int i, j;
 
