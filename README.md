@@ -9,7 +9,7 @@ Protocols included:
 
 ## Build
 
-`make clean`
+`make clean` <br>
 `make`
 
 ## Usage
