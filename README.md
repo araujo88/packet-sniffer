@@ -7,4 +7,4 @@ A simple packet sniffer coded in C
 
 ## Usage
 
-`./main.o | tee log`
+`sudo ./main.o | tee log`
