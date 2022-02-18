@@ -1,13 +1,17 @@
 # packet-sniffer
 A simple packet sniffer coded in C
 
+Protocols included:
+- TCP/IP
+- UDP
+- ICMP
+- IGMP
+
 ## Build
 
-`gcc main.c -o main.o`
+`make clean`
+`make`
 
 ## Usage
 
-`sudo ./main.o | tee log`
-
-## TODO
- - Include IGMP protocol
+`sudo ./packet-sniffer | tee log`

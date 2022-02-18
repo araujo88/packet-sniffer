@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>      // socket creation
-#include <errno.h>           // error codes
-#include <stdbool.h>         // boolean types
-#include <netinet/ip_icmp.h> // provides declarations for icmp header
-//#include <netinet/igmp.h>     // provides declarations for igmp header
-#include <linux/igmp.h>
+#include <errno.h>            // error codes
+#include <stdbool.h>          // boolean types
+#include <sys/socket.h>       // socket creation
+#include <netinet/ip_icmp.h>  // provides declarations for icmp header
+#include <linux/igmp.h>       // provides declarations for igmp header
 #include <netinet/udp.h>      // provides declarations for udp header
 #include <netinet/tcp.h>      // provides declarations for tcp header
 #include <netinet/ip.h>       // provides declarations for ip header
@@ -14,11 +13,8 @@
 #include <net/ethernet.h>     // for ether_header
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <signal.h> // for interrupt signal handler
+#include "packet.h"
 
-#define BUFFER_SIZE 65536
-
-int raw_socket;
 int tcp = 0;
 int udp = 0;
 int icmp = 0;
@@ -27,58 +23,6 @@ int others = 0;
 int total = 0;
 struct sockaddr_in *source;
 struct sockaddr_in *destination;
-
-void check_socket(int socket);
-void print_ethernet_header(unsigned char *buffer, ssize_t size);
-void print_ip_header(unsigned char *buffer, ssize_t size);
-void process_packet(unsigned char *buffer, ssize_t size);
-void print_tcp_packet(unsigned char *buffer, ssize_t size);
-void print_udp_packet(unsigned char *buffer, ssize_t size);
-void print_icmp_packet(unsigned char *buffer, ssize_t size);
-void print_igmp_packet(unsigned char *buffer, ssize_t size);
-void print_data(unsigned char *data, ssize_t size);
-void handle_signal(int sig);
-
-int main(int argc, char *argv[])
-{
-  unsigned char buffer[BUFFER_SIZE];
-  ssize_t bytes_read;
-  struct sockaddr addr;
-  socklen_t addr_size = (socklen_t)sizeof(addr);
-
-  source = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
-  destination = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
-
-  /* Creates raw socket
-  AF_INET - IP protocol
-  SOCK_RAW - raw socket
-  IPPROTO_TCP - TCP protocol
-  IPPROTO_UDP - UDP protocol
-  IPPROTO_ICMP - ICMP protocol
-  */
-  // raw_socket = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
-  raw_socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-  check_socket(raw_socket);
-
-  signal(SIGINT, handle_signal);
-  while (true)
-  {
-    memset(buffer, 0, sizeof(buffer));
-    bytes_read = recvfrom(raw_socket, buffer, sizeof(buffer), 0, &addr, &addr_size);
-    if (bytes_read < 0)
-    {
-      perror("Error receiving data");
-      printf("Error code: %d\n", errno);
-      exit(EXIT_FAILURE);
-    }
-    printf("\n\nBytes read: %ld\n", bytes_read);
-    process_packet(buffer, bytes_read);
-    // for (i = 0; i < bytes_read; i++)
-    //     putchar(((char *)buffer)[i]); // raw binary data
-  }
-
-  return 0;
-}
 
 void check_socket(int socket)
 {
@@ -268,10 +212,22 @@ void print_igmp_packet(unsigned char *buffer, ssize_t size)
 
   printf("\n");
   printf("IGMP Header\n");
-  printf("   |-Type : %d\n", (unsigned int)(igmp_header->type));
-  printf("   |-Code : %x\n", (unsigned int)(igmp_header->code));
+  printf("   |-Type : 0x%.2X", (unsigned int)(igmp_header->type));
+  if ((unsigned int)(igmp_header->type) == 0x11)
+  {
+    printf("  (Membership Query	)\n");
+  }
+  else if ((unsigned int)(igmp_header->type) == 0x22)
+  {
+    printf("  (IGMPv3 Membership Report)\n");
+  }
+  else if ((unsigned int)(igmp_header->type) == 0x17)
+  {
+    printf("  (Leave Group)\n");
+  }
+  printf("   |-Code : 0x%.2X\n", (unsigned int)(igmp_header->code));
   printf("   |-Checksum : %d\n", ntohs(igmp_header->csum));
-  printf("   |-Group : %d\n", (unsigned int)(igmp_header->group));
+  printf("   |-Group : %d\n", ntohs(igmp_header->group));
   printf("\n");
 
   printf("IP Header\n");
@@ -306,10 +262,10 @@ void print_ip_header(unsigned char *buffer, ssize_t size)
 
   print_ethernet_header(buffer, size);
 
-  memset(source, 0, sizeof(source));
+  memset(source, 0, sizeof(*source));
   source->sin_addr.s_addr = ip_header->saddr;
 
-  memset(destination, 0, sizeof(destination));
+  memset(destination, 0, sizeof(*destination));
   destination->sin_addr.s_addr = ip_header->daddr;
 
   printf("\nIP Header\n");
@@ -372,26 +328,5 @@ void print_data(unsigned char *data, ssize_t size)
       }
       printf("\n");
     }
-  }
-}
-
-void handle_signal(int sig)
-{
-  printf("\nCaught interrupt signal %d\n", sig);
-  puts("Releasing resources ...");
-  free(source);
-  free(destination);
-  // closes the socket
-  puts("Closing socket ...");
-  if (close(raw_socket) == 0)
-  {
-    puts("Socket closed!");
-    exit(EXIT_SUCCESS);
-  }
-  else
-  {
-    perror("An error occurred while closing the socket: ");
-    printf("Error code: %d\n", errno);
-    exit(EXIT_FAILURE);
   }
 }
